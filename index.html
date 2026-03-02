@@ -1,1 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>whoistheMETRO — Sound Design</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+  :root {
+    --green: #39ff14;
+    --cyan: #00f5ff;
+    --dark: #050608;
+    --mid: #090b0e;
+  }
+
+  body {
+    background: var(--dark);
+    color: #ccc;
+    font-family: 'Courier New', Courier, monospace;
+    overflow-x: hidden;
+    cursor: crosshair;
+    padding-bottom: 90px; /* room for transport */
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .parallax-bg {
+    position: absolute;
+    inset: -80px;
+    background-image: url('suzanne_at_a_party_1920x1080.jpg');
+    background-size: cover;
+    background-position: center;
+    will-change: transform;
+    z-index: 0;
+  }
+
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 30%, rgba(5,6,8,0.25) 0%, rgba(5,6,8,0.93) 100%);
+    z-index: 1;
+  }
+
+  .scanlines {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.1) 3px, rgba(0,0,0,0.1) 4px);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* ── LOGO ── */
+  .site-header {
+    position: relative;
+    z-index: 3;
+    padding: 2.5rem 3rem 0;
+    animation: fadeUp 0.8s 0.2s both;
+  }
+
+  .logo { display: inline-block; line-height: 1; }
+
+  .logo-small {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: clamp(0.7rem, 1.6vw, 1rem);
+    color: rgba(255,255,255,0.65);
+    display: block;
+    letter-spacing: 0.04em;
+    margin-bottom: -0.05em;
+  }
+
+  .logo-large {
+    font-family: Impact, 'Arial Narrow', Arial, sans-serif;
+    font-size: clamp(3.2rem, 9vw, 6.5rem);
+    letter-spacing: 0.06em;
+    color: #fff;
+    display: block;
+    line-height: 0.85;
+    text-shadow: 0 0 40px rgba(57,255,20,0.3), 2px 2px 0 rgba(0,245,255,0.2);
+  }
+
+  .logo-tag {
+    font-size: 0.58rem;
+    letter-spacing: 0.45em;
+    color: var(--green);
+    text-transform: uppercase;
+    margin-top: 0.65rem;
+    display: block;
+    opacity: 0.75;
+  }
+
+  /* ── HERO BODY ── */
+  .hero-body {
+    position: relative;
+    z-index: 3;
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: 3rem;
+    padding: 2rem 3rem 3rem;
+  }
+
+  .hero-left {
+    flex: 0 0 200px;
+    padding-top: 0.25rem;
+  }
+
+  .hero-desc {
+    font-size: 0.7rem;
+    line-height: 1.9;
+    color: rgba(255,255,255,0.4);
+  }
+
+  .hero-desc strong { color: var(--green); font-weight: normal; }
+
+  /* ── PLAYLIST ── */
+  .hero-player { flex: 1; min-width: 0; }
+
+  .player-label {
+    font-size: 0.56rem;
+    letter-spacing: 0.5em;
+    color: var(--green);
+    text-transform: uppercase;
+    margin-bottom: 0.85rem;
+    opacity: 0.65;
+  }
+
+  .track-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .track-row {
+    position: relative;
+    background: rgba(13,15,18,0.72);
+    border: 1px solid rgba(57,255,20,0.07);
+    border-left: 3px solid transparent;
+    padding: 0.75rem 1.1rem;
+    display: grid;
+    grid-template-columns: 2.2rem 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+  }
+
+  .track-row.visible {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.4s ease, transform 0.4s ease, border-color 0.3s, background 0.3s, box-shadow 0.3s;
+  }
+
+  .track-row:hover {
+    background: rgba(57,255,20,0.04);
+    border-color: rgba(57,255,20,0.18);
+    border-left-color: var(--green);
+  }
+
+  .track-row.active {
+    background: rgba(0,245,255,0.05);
+    border-color: rgba(0,245,255,0.2);
+    border-left-color: var(--cyan);
+  }
+
+  .track-idx {
+    font-size: 0.52rem;
+    color: rgba(255,255,255,0.16);
+    text-align: center;
+    transition: opacity 0.15s;
+    user-select: none;
+  }
+
+  .track-row:hover .track-idx,
+  .track-row.active .track-idx { opacity: 0; }
+
+  .track-icon {
+    position: absolute;
+    left: 1.1rem;
+    width: 2.2rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem;
+    color: var(--green);
+    opacity: 0;
+    transition: opacity 0.15s;
+    user-select: none;
+  }
+
+  .track-row.active .track-icon { color: var(--cyan); }
+  .track-row:hover .track-icon,
+  .track-row.active .track-icon { opacity: 1; }
+
+  .track-name {
+    font-family: Impact, 'Arial Narrow', Arial, sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+    color: #fff;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s;
+  }
+
+  .track-row.active .track-name { color: var(--cyan); }
+
+  .waveform-bars {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .waveform-bars span {
+    display: block;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--green);
+    opacity: 0.15;
+    animation: wave var(--dur,1s) ease-in-out infinite alternate;
+    animation-delay: var(--del,0s);
+    animation-play-state: paused;
+  }
+
+  .track-row.active .waveform-bars span {
+    opacity: 0.8;
+    animation-play-state: running;
+    background: var(--cyan);
+  }
+
+  /* ── MASTER TRANSPORT ── */
+  .transport {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 200;
+    background: rgba(5,6,8,0.97);
+    border-top: 1px solid rgba(57,255,20,0.2);
+    backdrop-filter: blur(16px);
+    padding: 0 2rem;
+    height: 82px;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  /* now playing */
+  .now-playing {
+    flex: 0 0 180px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .now-playing-label {
+    font-size: 0.48rem;
+    letter-spacing: 0.4em;
+    color: rgba(255,255,255,0.25);
+    text-transform: uppercase;
+  }
+
+  .now-playing-name {
+    font-family: Impact, 'Arial Narrow', Arial, sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+    color: var(--cyan);
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* controls */
+  .transport-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .t-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0.4rem 0.5rem;
+    transition: color 0.2s, transform 0.15s;
+    line-height: 1;
+  }
+
+  .t-btn:hover { color: #fff; transform: scale(1.15); }
+
+  .t-btn.play-pause {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(57,255,20,0.4);
+    color: var(--green);
+    font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  }
+
+  .t-btn.play-pause:hover {
+    background: rgba(57,255,20,0.1);
+    border-color: var(--green);
+    transform: scale(1.08);
+  }
+
+  /* progress + time */
+  .transport-progress {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+
+  .master-progress-wrap {
+    height: 4px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 3px;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .master-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--cyan), var(--green));
+    width: 0%;
+    pointer-events: none;
+    transition: width 0.1s linear;
+  }
+
+  /* scrubber thumb */
+  .master-progress-wrap:hover .master-progress-fill::after {
+    content: '';
+    position: absolute;
+    right: -5px; top: 50%;
+    transform: translateY(-50%);
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(57,255,20,0.6);
+  }
+
+  .transport-time {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.48rem;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 0.1em;
+  }
+
+  /* volume */
+  .transport-volume {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .vol-icon {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.35);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+  }
+
+  .vol-icon:hover { color: var(--green); }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 90px;
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px rgba(57,255,20,0.5);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+
+  input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.3); }
+
+  input[type=range]::-moz-range-thumb {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--green);
+    border: none;
+    cursor: pointer;
+  }
+
+  /* corners */
+  .corner-tl, .corner-br {
+    position: fixed;
+    width: 42px; height: 42px;
+    z-index: 100; pointer-events: none;
+  }
+  .corner-tl { top: 14px; left: 14px; border-top: 1px solid var(--green); border-left: 1px solid var(--green); opacity: 0.28; }
+  .corner-br { bottom: 96px; right: 14px; border-bottom: 1px solid var(--cyan); border-right: 1px solid var(--cyan); opacity: 0.28; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes wave {
+    from { height: 3px; } to { height: var(--h, 14px); }
+  }
+
+  @media (max-width: 700px) {
+    .hero-body { flex-direction: column; padding: 1.5rem; gap: 1.5rem; }
+    .site-header { padding: 1.5rem 1.5rem 0; }
+    .hero-left { flex: 0 0 auto; }
+    .now-playing { display: none; }
+    .transport { gap: 0.75rem; padding: 0 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="corner-tl"></div>
+<div class="corner-br"></div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="parallax-bg" id="parallaxBg"></div>
+  <div class="hero-overlay"></div>
+  <div class="scanlines"></div>
+
+  <header class="site-header">
+    <div class="logo">
+      <span class="logo-small">whoisthe</span>
+      <span class="logo-large">METRO</span>
+      <span class="logo-tag">experimental sound design</span>
+    </div>
+  </header>
+
+  <div class="hero-body">
+    <div class="hero-left">
+      <p class="hero-desc">
+        Recorded using only <strong>hardware synths</strong>, modular and samplers.
+        Every track is a single take — mastered and released.
+      </p>
+    </div>
+
+    <div class="hero-player">
+      <p class="player-label">// transmissions</p>
+      <div class="track-list" id="trackList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- MASTER TRANSPORT -->
+<div class="transport">
+  <div class="now-playing">
+    <span class="now-playing-label">now playing</span>
+    <span class="now-playing-name" id="nowPlayingName">—</span>
+  </div>
+
+  <div class="transport-controls">
+    <button class="t-btn" id="btnPrev" title="Previous">&#9664;&#9664;</button>
+    <button class="t-btn play-pause" id="btnPlayPause" title="Play / Pause">&#9654;</button>
+    <button class="t-btn" id="btnNext" title="Next">&#9654;&#9654;</button>
+  </div>
+
+  <div class="transport-progress">
+    <div class="master-progress-wrap" id="masterProgressWrap">
+      <div class="master-progress-fill" id="masterProgressFill"></div>
+    </div>
+    <div class="transport-time">
+      <span id="timeCurrent">0:00</span>
+      <span id="timeDuration">0:00</span>
+    </div>
+  </div>
+
+  <div class="transport-volume">
+    <span class="vol-icon" id="volIcon">&#128266;</span>
+    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1">
+  </div>
+</div>
+
+<script>
+const BASE = 'https://raw.githubusercontent.com/whoisthemetro/sounddesign/main/';
+
+const tracks = [
+  'ArchBarch','ArchDance','ArchGroove','ArchTech',
+  'DigitaktMetal','EngineMatriarch','Escape','EscapeMe',
+  'FastArpMatriarch','MoogMindCore','MoogMindRelease',
+  'MoogSpace','PocketMatriarch','SignalAlarm'
+];
+
+// ── STATE ──
+let currentIdx = -1;
+const audio = new Audio();
+audio.preload = 'none';
+
+// ── ELEMENTS ──
+const btnPlay   = document.getElementById('btnPlayPause');
+const btnPrev   = document.getElementById('btnPrev');
+const btnNext   = document.getElementById('btnNext');
+const nowName   = document.getElementById('nowPlayingName');
+const progWrap  = document.getElementById('masterProgressWrap');
+const progFill  = document.getElementById('masterProgressFill');
+const timeCur   = document.getElementById('timeCurrent');
+const timeDur   = document.getElementById('timeDuration');
+const volSlider = document.getElementById('volumeSlider');
+const volIcon   = document.getElementById('volIcon');
+const list      = document.getElementById('trackList');
+
+function fmt(s) {
+  if (isNaN(s) || !isFinite(s)) return '0:00';
+  return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`;
+}
+
+function buildWaveform(container) {
+  for (let i = 0; i < 12; i++) {
+    const s = document.createElement('span');
+    s.style.setProperty('--h', Math.floor(Math.random()*11+4)+'px');
+    s.style.setProperty('--dur', (0.4+Math.random()*0.7).toFixed(2)+'s');
+    s.style.setProperty('--del', (Math.random()*0.5).toFixed(2)+'s');
+    container.appendChild(s);
+  }
+}
+
+// build rows
+const rows = [];
+tracks.forEach((name, i) => {
+  const row = document.createElement('div');
+  row.className = 'track-row';
+  row.innerHTML = `
+    <div class="track-idx">${String(i+1).padStart(2,'0')}</div>
+    <div class="track-icon">▶</div>
+    <div class="track-name">${name}</div>
+    <div class="waveform-bars"></div>
+  `;
+  buildWaveform(row.querySelector('.waveform-bars'));
+  row.addEventListener('click', () => loadAndPlay(i));
+  list.appendChild(row);
+  rows.push(row);
+});
+
+function setActiveRow(idx) {
+  rows.forEach((r, i) => {
+    r.classList.toggle('active', i === idx);
+    r.querySelector('.track-icon').textContent = (i === idx && !audio.paused) ? '▐▐' : '▶';
+  });
+}
+
+function loadAndPlay(idx) {
+  currentIdx = idx;
+  audio.src = BASE + tracks[idx] + '.mp3';
+  audio.load();
+  audio.play().catch(err => console.error(err));
+  nowName.textContent = tracks[idx];
+  btnPlay.innerHTML = '&#9646;&#9646;';
+  setActiveRow(idx);
+}
+
+// transport controls
+btnPlay.addEventListener('click', () => {
+  if (currentIdx < 0) { loadAndPlay(0); return; }
+  if (audio.paused) {
+    audio.play();
+    btnPlay.innerHTML = '&#9646;&#9646;';
+    rows[currentIdx].querySelector('.track-icon').textContent = '▐▐';
+  } else {
+    audio.pause();
+    btnPlay.innerHTML = '&#9654;';
+    rows[currentIdx].querySelector('.track-icon').textContent = '▶';
+  }
+});
+
+btnPrev.addEventListener('click', () => {
+  if (currentIdx <= 0) loadAndPlay(tracks.length - 1);
+  else loadAndPlay(currentIdx - 1);
+});
+
+btnNext.addEventListener('click', () => {
+  loadAndPlay((currentIdx + 1) % tracks.length);
+});
+
+// auto-advance
+audio.addEventListener('ended', () => {
+  loadAndPlay((currentIdx + 1) % tracks.length);
+});
+
+// progress bar
+audio.addEventListener('timeupdate', () => {
+  if (!audio.duration) return;
+  const pct = audio.currentTime / audio.duration * 100;
+  progFill.style.width = pct + '%';
+  timeCur.textContent = fmt(audio.currentTime);
+  timeDur.textContent = fmt(audio.duration);
+});
+
+progWrap.addEventListener('click', e => {
+  if (!audio.duration) return;
+  const r = progWrap.getBoundingClientRect();
+  audio.currentTime = ((e.clientX - r.left) / r.width) * audio.duration;
+});
+
+// volume
+volSlider.addEventListener('input', () => {
+  audio.volume = volSlider.value;
+  volIcon.innerHTML = volSlider.value == 0 ? '&#128264;' : volSlider.value < 0.5 ? '&#128265;' : '&#128266;';
+});
+
+volIcon.addEventListener('click', () => {
+  if (audio.volume > 0) {
+    audio.volume = 0;
+    volSlider.value = 0;
+    volIcon.innerHTML = '&#128264;';
+  } else {
+    audio.volume = 1;
+    volSlider.value = 1;
+    volIcon.innerHTML = '&#128266;';
+  }
+});
+
+// scroll reveal
+const io = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const idx = rows.indexOf(entry.target);
+      setTimeout(() => entry.target.classList.add('visible'), idx * 30);
+      io.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.02 });
+rows.forEach(r => io.observe(r));
+
+// parallax
+const bg = document.getElementById('parallaxBg');
+let mx=0,my=0,cx=0,cy=0,st=0;
+window.addEventListener('mousemove', e => {
+  mx = (e.clientX/window.innerWidth - 0.5)*28;
+  my = (e.clientY/window.innerHeight - 0.5)*18;
+});
+window.addEventListener('scroll', () => { st=window.scrollY; }, {passive:true});
+(function loop() {
+  cx += (mx-cx)*0.07; cy += (my-cy)*0.07;
+  bg.style.transform = `translate(${cx}px,${cy+st*0.28}px) scale(1.1)`;
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
